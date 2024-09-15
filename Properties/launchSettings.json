@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ParseCSV2FixedWidth": {
+      "commandName": "Project",
+      "commandLineArgs": "C:\\Users\\Jordan\\Projects\\Datasets\\test_dataset.txt\r\n,"
+    }
+  }
+}
