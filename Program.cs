@@ -7,7 +7,7 @@ namespace ParseCSV2FixedWidth {
     internal class Program {
         static void Main(string[] args) {
             Console.WriteLine("Creating new dataset with fixed width");
-            String tmpFilePath = @"C:\Users\Jordan\Projects\Datasets\tmp.txt";
+            String tmpFilePath = @"C:\Users\deleteme\output.txt";
             StreamWriter writer = new StreamWriter(tmpFilePath, false);
             String dataSet = "";
             String delimiter = "";
@@ -34,9 +34,27 @@ namespace ParseCSV2FixedWidth {
                 writer.Flush();
             }
             writer.Close();
-            readStream.Close();
+            //readStream.Close();
             Console.WriteLine("Done creating fixed width dataset...");
             Console.Read();
+            Console.WriteLine("Starting new methods");
+            Console.WriteLine();
+
+
+            //CalcFields calcFields = new CalcFields(dataSet);
+            //int[] copyArray = calcFields.findFieldLength();
+
+            String finalrecord;
+            DatasetStructure testing = new DatasetStructure(tmpFilePath, dataSet);
+            readStream.BaseStream.Position = 0;
+            while (readStream.ReadLine() != null)
+            {
+            finalrecord = testing.ModifyRecord();
+            testing.WriteOutRecord(finalrecord);
+            Console.WriteLine($"This is the final record {finalrecord}");
+
+            }
+            readStream.Close();
         }
     }
 }
