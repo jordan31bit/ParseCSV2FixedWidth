@@ -1,137 +1,90 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Microsoft.VisualBasic.FileIO;
 
 namespace ParseCSV2FixedWidth
 {
     internal class CalcFields
     {
-        private String dataset { get; set; }
-        private int fieldLength;
-        private int recCount;
-        private int colCount;
-        public int[] fieldLenCollection;
-        
-        // Constructor
-        public CalcFields()
-        {
+        private string dataset;
+        private string delimiter;
 
-        }
-        public CalcFields(String _dataset)
+        // Constructor
+        public CalcFields(string _dataset, string _delimiter)
         {
             dataset = _dataset;
-            fieldLength = 0;
-            colCount = CountColumns();
-            recCount = CountRecords();
-            fieldLenCollection = new int[colCount];
-            fieldLenCollection = findFieldLength();
+            delimiter = _delimiter;
         }
 
-
-        private int CountRecords()
+        // Setup parser
+        private TextFieldParser initParser()
         {
-            StreamReader reader = new StreamReader(dataset);
-            while(!reader.EndOfStream) {
-                reader.ReadLine();
+            try
+            {
+                TextFieldParser parser;
+                parser = new TextFieldParser(dataset);
+                parser.TextFieldType = FieldType.Delimited;
+                parser.SetDelimiters(delimiter);
+                parser.HasFieldsEnclosedInQuotes = true;
+
+                return parser;
+            }
+            catch (Exception error)
+            {
+
+                Console.WriteLine($"There was an error opening the file.\nError: {error}", error);
+                throw new FileNotFoundException($"File not found or access is denied: {error}", error);
+            }
+        }
+
+        // Count how many records are in the dataset and set the recCount value.
+        public int CountRecords()
+        {
+            int recCount = 0;
+            using TextFieldParser parser = initParser();
+            while(!parser.EndOfData) {
+                parser.ReadLine();
                 recCount++;
             }
-            reader.Close();
-            return this.recCount;
+
+            return recCount;
         }
 
+        // Read the first record and count the columns and set the colCount value.
         public int CountColumns()
         {
-            StreamReader reader = new StreamReader(dataset);
-            String tmpStr = reader.ReadLine();
-            if (tmpStr != null)
-            {
-                String[] subString = tmpStr.Split(",");
-                this.colCount = subString.Length;
-            }
-            reader.Close();
-            return this.colCount;
-        }
+            int colCount = 0;
+            using TextFieldParser parser = initParser();
+            string[] subString = parser.ReadFields();
+            colCount = subString.Length;
+            
+            return colCount;
+        }        
 
-        public int[] findFieldLength()
-        {
-            StreamReader reader = new StreamReader(dataset);
-            String tmpString;
-            int columnNum = 1;
-            int tmpLength = 0;
-            String[] subStr;
-            // loop to control going through columns
-            while(columnNum <= colCount)
+        /* 
+         * Find the longest field/column in any record in the entire dataset and that will be our
+         * new length for those specific fields.
+        */
+        public int[] findLongestFields()
+        {        
+            int[] longestFieldLength = new int[CountColumns()];
+            using TextFieldParser parser = initParser();
+            string[] fieldsArray = new string[CountColumns()];
+            // Search through entire dataset.
+            while (!parser.EndOfData)
             {
-                for (int i = 0; i < recCount; i++)
+                // Check for null/end of line
+                if ((fieldsArray = parser.ReadFields()) != null)
                 {
-                    // read record to first delimiter
-                    tmpString = reader.ReadLine();
-
-                    if (tmpString != null)
+                    for (int i = 0; i < fieldsArray.Length; i++)
                     {
-
-                        subStr = tmpString.Split(",");
-                        tmpLength = subStr[columnNum - 1].Length;
-
-                        if (tmpLength > fieldLength)
+                        if (fieldsArray[i].Length > longestFieldLength[i])
                         {
-                            fieldLength = tmpLength;
-                            fieldLenCollection[columnNum - 1] = tmpLength;
+                            longestFieldLength[i] = fieldsArray[i].Length;
                         }
                     }
                 }
-                columnNum++;
-                reader.BaseStream.Position = 0;
-                reader.DiscardBufferedData();
             }
-            reader.Close();
-            for (int i = 0; i < fieldLenCollection.Length; i++)
-            {
-                Console.WriteLine(fieldLenCollection[i]);
-            }
-            return fieldLenCollection;
-        }
-
-        private int getFieldLength(int lineNumber)
-        {
-            StreamReader reader = new StreamReader(dataset);
-            for (int i = 0; i <= lineNumber; i++)
-            {
-                reader.ReadLine();
-                if(i == lineNumber)
-                {
-                    String tmpString = reader.ReadLine();
-                    return tmpString.Split(",").Length;
-                }
-            }
-            // Break stuff
-            
-            return -1000;
-        }
-
-
-        private int getFieldLength(String currentRecord, int index)
-        {
-            String[] tmpStr;
-            tmpStr = currentRecord.Split(",");
-            
-            return tmpStr[index].Length;
-        }
-
-
-
-        // This is how much padding to add to each record in output file.
-        public int[] calcFieldDifference(String currentRecord)
-        {
-            int[] fieldPaddings = new int[colCount];
-            for (int i = 0; i < fieldPaddings.Length; i++)
-            {
-                //fieldPaddings[i] = fieldLenCollection[i] - getFieldLength(currentRecord, i);
-                fieldPaddings[i] = fieldLenCollection[i]; 
-            }
-            return fieldPaddings;
+       
+            return longestFieldLength;
         }
     }
 }

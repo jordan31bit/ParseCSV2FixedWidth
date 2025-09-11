@@ -2,7 +2,7 @@
   "profiles": {
     "ParseCSV2FixedWidth": {
       "commandName": "Project",
-      "commandLineArgs": "C:\\Users\\deleteme\\tmp.txt\r\n,"
+      "commandLineArgs": "C:\\Users\\deleteme\\tmp.txt , C:\\Users\\deleteme\\output.txt"
     }
   }
 }
