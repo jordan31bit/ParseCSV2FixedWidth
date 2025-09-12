@@ -53,9 +53,28 @@
                 }
             } while (userInput.KeyChar != 'q' && userInput.Key != ConsoleKey.Spacebar);
 
+            DatasetIO datasetIO = new DatasetIO(inputFile, outputFile, delimiter);
+            ModifyDatasetStructure mds;
+            mds = new ModifyDatasetStructure(inputFile, outputFile, delimiter, longestFields);
+            
+            // Modify the record then write it to file. Do this for entire dataset.
+            string modifiedRecord = string.Empty;
 
-            //ModifyDatasetStructure mds = new ModifyDatasetStructure(dataSet, outputFile, delimiter, longestFields);
-            //Console.WriteLine(mds.ModifyRecords()); 
+            int counter = 0;
+            // Handle null and use it to break loop because null record means end of dataset.
+            while ((modifiedRecord = mds.ModifyRecords(datasetIO.ReadFields())) != null)
+            {
+                
+                // we can print results of a progress-bar here later
+                datasetIO.WriteRecord(modifiedRecord);
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.Write(counter);
+                counter++;
+                Console.WriteLine();
+                Console.WriteLine();
+            }
+            Console.WriteLine("FINISHED DOING WORK");
         }
     }
 }

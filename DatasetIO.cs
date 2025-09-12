@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualBasic.FileIO;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
@@ -9,12 +10,14 @@ namespace ParseCSV2FixedWidth
         private string inputFile;
         private string outputFile;
         private string delimiter;
+        private long lineNumber;
 
         public DatasetIO(string inputFile, string outputFile, string delimiter)
         {
             this.inputFile = inputFile;
             this.outputFile = outputFile;
             this.delimiter = delimiter;
+            lineNumber = 1;
         }
 
         // Create and setup parser.
@@ -41,7 +44,8 @@ namespace ParseCSV2FixedWidth
         {
             try
             {
-                StreamWriter writer = new StreamWriter(outputFile);
+                StreamWriter writer = new StreamWriter(outputFile, append: true);
+                writer.AutoFlush = true;
                 return writer;
 
             }
@@ -60,8 +64,35 @@ namespace ParseCSV2FixedWidth
 
         public string[] ReadFields()
         {
-            using TextFieldParser parser = InitParser();
-            return parser.ReadFields();
+            try
+            {
+                string[]? foo;
+                FileStream readStream = new FileStream(inputFile, FileMode.Open, FileAccess.Read);
+                TextFieldParser parser = new TextFieldParser(readStream);
+                    parser.TextFieldType = FieldType.Delimited;
+                    parser.SetDelimiters(delimiter);
+                    parser.HasFieldsEnclosedInQuotes = true;
+
+                // Skip lines we have already processed.
+                while(parser.LineNumber < lineNumber && !parser.EndOfData && parser.LineNumber > 0)
+                {
+                    parser.ReadLine();
+                }
+                
+                while(!parser.EndOfData && lineNumber > 0)
+                {
+                    foo = parser.ReadFields();
+                    lineNumber = parser.LineNumber;
+                    return foo;
+                }
+                
+                foo = null;
+                return foo;
+            }
+            catch (FileNotFoundException error)
+            {
+                throw new FileNotFoundException($"ERROR: FILE DOES NOT EXIST.\n{error.Message}");
+            }
         }
 
         // Read only FIRST RECORD.
@@ -92,7 +123,7 @@ namespace ParseCSV2FixedWidth
             return line;
         }
 
-        // Not performat and could RUN OUT OF MEMORY on very large datasets.
+        // Not performant and could RUN OUT OF MEMORY on very large datasets.
         public List<string> ReadAllRecords()
         {
             List<string> allRecords = new List<string>();
@@ -125,7 +156,8 @@ namespace ParseCSV2FixedWidth
 
         public void WriteRecord(string record)
         {
-            using StreamWriter writer = InitWriter();   
+            using StreamWriter writer = InitWriter();
+            Console.WriteLine(record);
             writer.WriteLine(record);
         }
     }
