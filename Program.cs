@@ -1,60 +1,80 @@
-﻿using System.Data.Common;
-using System.Diagnostics;
-using System.IO;
-using System.Text;
-
-namespace ParseCSV2FixedWidth {
+﻿namespace ParseCSV2FixedWidth {
     internal class Program {
         static void Main(string[] args) {
-            Console.WriteLine("Creating new dataset with fixed width");
-            String tmpFilePath = @"C:\Users\deleteme\output.txt";
-            StreamWriter writer = new StreamWriter(tmpFilePath, false);
-            String dataSet = "";
+            /// The output path for the modified dataset.THIS IS FOR TESTING ONLY
+            String inputFile = "";
+            String outputFile = @"C:\Users\deleteme\output.txt";
             String delimiter = "";
-            int fixedWidth = 30; // change per dataset
-            
-            if(args != null) {
-                dataSet = args[0];
-                delimiter = args[1];
-            }
-            else {
-                Console.WriteLine("ERROR: please give full file path.");
-            }
-            
-            StreamReader readStream = new StreamReader(dataSet);
-            String record = "";
-            while((record = readStream.ReadLine()) != null) {
-                String[] subStrings = null;
-                subStrings = record.Split(delimiter);
-                foreach (String newRecord in subStrings) {
-                    writer.Write(newRecord.PadRight(fixedWidth));
-                    writer.Flush();
-                }
-                writer.Write('\n');
-                writer.Flush();
-            }
-            writer.Close();
-            //readStream.Close();
-            Console.WriteLine("Done creating fixed width dataset...");
-            Console.Read();
-            Console.WriteLine("Starting new methods");
-            Console.WriteLine();
+            const int minimumArgs = 3;
+            int numOfFields, numOfRecords;
 
-
-            //CalcFields calcFields = new CalcFields(dataSet);
-            //int[] copyArray = calcFields.findFieldLength();
-
-            String finalrecord;
-            DatasetStructure testing = new DatasetStructure(tmpFilePath, dataSet);
-            readStream.BaseStream.Position = 0;
-            while (readStream.ReadLine() != null)
+            // Get user's inputFile (path), outputFile (path) and the defined delimter.
+            if(args.Length <= minimumArgs) 
             {
-            finalrecord = testing.ModifyRecord();
-            testing.WriteOutRecord(finalrecord);
-            Console.WriteLine($"This is the final record {finalrecord}");
-
+                inputFile = args[0];
+                delimiter = args[1];
+                outputFile = args[2];
             }
-            readStream.Close();
+            else 
+            {
+                Console.WriteLine("ERROR: please give full file path and delimiter...");
+            }
+
+            // Init calc class and get dataset info.
+            CalcFields calcFields = new CalcFields(inputFile, delimiter);
+
+            numOfFields = calcFields.CountColumns();
+            numOfRecords = calcFields.CountRecords();
+            int[] longestFields = calcFields.findLongestFields();
+            Console.WriteLine("-- DATASET INFO --");
+            Console.WriteLine($"Dataset INPUT: {inputFile}\nDataset OUTPUT: {outputFile}");
+            Console.WriteLine($"Records: {numOfRecords}\nNumber of fields/record: {numOfFields}");
+            Console.Write("Field widths will be adjusted to the following: ");
+            foreach (int fieldSize in longestFields)
+            {
+                Console.Write($"{fieldSize.ToString()}, ");
+            }
+            Console.WriteLine("\n-- END OF INFO --\n");
+            Console.WriteLine("Will now commence in converting the dataset to flat file format.");
+
+            // Get and check user input for decision.
+            ConsoleKeyInfo userInput;
+            Console.WriteLine("Press SPACE to continue or Q to abort and quit program.");
+            do
+            {
+                userInput = Console.ReadKey();
+                if (userInput.KeyChar == 'q')
+                {
+                    Environment.Exit(0);
+                }
+                if (userInput.Key != ConsoleKey.Spacebar)
+                {
+                    Console.WriteLine("Ok, starting process...");
+                }
+            } while (userInput.KeyChar != 'q' && userInput.Key != ConsoleKey.Spacebar);
+
+            DatasetIO datasetIO = new DatasetIO(inputFile, outputFile, delimiter);
+            ModifyDatasetStructure mds;
+            mds = new ModifyDatasetStructure(inputFile, outputFile, delimiter, longestFields);
+            
+            // Modify the record then write it to file. Do this for entire dataset.
+            string modifiedRecord = string.Empty;
+
+            int counter = 0;
+            // Handle null and use it to break loop because null record means end of dataset.
+            while ((modifiedRecord = mds.ModifyRecords(datasetIO.ReadFields())) != null)
+            {
+                
+                // we can print results of a progress-bar here later
+                datasetIO.WriteRecord(modifiedRecord);
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.Write(counter);
+                counter++;
+                Console.WriteLine();
+                Console.WriteLine();
+            }
+            Console.WriteLine("FINISHED DOING WORK");
         }
     }
 }
